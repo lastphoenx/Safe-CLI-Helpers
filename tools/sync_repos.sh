@@ -43,6 +43,8 @@ for repo_name in "${!REPOS[@]}"; do
     info "─────────────────────────────────────────────────────────────────"
     info "Repo: $repo_name"
     info "Path: $repo_path"
+    BRANCH_DISPLAY=$(cd "$repo_path" 2>/dev/null && git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "?")
+    info "Branch: $BRANCH_DISPLAY"
     
     if [[ ! -d "$repo_path/.git" ]]; then
         error "$repo_name: Keine .git Verzeichnis! ($repo_path)"
@@ -79,25 +81,33 @@ for repo_name in "${!REPOS[@]}"; do
         fi
         
         if [[ "$LOCAL" == "$REMOTE" ]]; then
-            success "$repo_name: Bereits aktuell"
+            success "$repo_name: Bereits aktuell (Branch: $BRANCH)"
+            echo "OK"
             exit 0
         elif git merge-base --is-ancestor "$REMOTE" "$LOCAL" 2>/dev/null; then
-            info "$repo_name: Local AHEAD von Remote (lokale Commits nicht gepusht)"
+            info "$repo_name: Local AHEAD von Remote (lokale Commits nicht gepusht, Branch: $BRANCH)"
+            echo "AHEAD"
             exit 0
         elif git merge-base --is-ancestor "$LOCAL" "$REMOTE" 2>/dev/null; then
             info "$repo_name: Remote AHEAD - Update verfügbar"
             
+            NEW_COUNT=$(git log "$LOCAL..$REMOTE" --oneline | wc -l)
             if [[ $STATUS_ONLY -eq 1 ]]; then
-                git log "$LOCAL..$REMOTE" --oneline | head -3
+                git log "$LOCAL..$REMOTE" --oneline | head -5
+                echo "OK"
                 exit 0
             elif [[ $DRY_RUN -eq 1 ]]; then
-                info "[DRY-RUN] Würde pullen:"
-                git log "$LOCAL..$REMOTE" --oneline | head -3
+                info "[DRY-RUN] Würde $NEW_COUNT Commit(s) pullen:"
+                git log "$LOCAL..$REMOTE" --oneline | head -5
+                echo "OK"
                 exit 0
             else
-                info "Pulling..."
+                info "Pulling... ($NEW_COUNT neue Commit(s))"
                 if git pull origin "$BRANCH"; then
-                    success "$repo_name: Erfolgreich gepullt"
+                    success "$repo_name: Erfolgreich gepullt ($NEW_COUNT Commits, Branch: $BRANCH)"
+                    # Status nach Pull: Branch + untracked files
+                    git status --short --branch 2>/dev/null | while IFS= read -r line; do info "  $line"; done
+                    echo "PULLED"
                     exit 0
                 else
                     error "$repo_name: Pull fehlgeschlagen"
@@ -116,6 +126,8 @@ for repo_name in "${!REPOS[@]}"; do
     fi
 done
 
+# Hinweis: Zähler werden via Subshell nicht zurückgegeben — Summary zeigt FAILED
+
 log ""
 log "════════════════════════════════════════════════════════════════════"
 log "Summary"
@@ -126,7 +138,7 @@ if [[ $STATUS_ONLY -eq 1 ]]; then
 elif [[ $DRY_RUN -eq 1 ]]; then
     info "DRY-RUN abgeschlossen (keine Änderungen)"
 else
-    info "Repos verarbeitet"
+    info "Repos verarbeitet (${#REPOS[@]} total, $FAILED Fehler)"
 fi
 
 if [[ $FAILED -gt 0 ]]; then
