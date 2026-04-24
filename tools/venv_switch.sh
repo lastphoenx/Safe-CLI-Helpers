@@ -94,7 +94,16 @@ if [[ "$ACTION" == "status" ]]; then
     if [[ -n "${VIRTUAL_ENV:-}" ]]; then
         _vs_log_success "Aktive venv: $VIRTUAL_ENV"
         python --version 2>&1 | sed 's/^/  /'
-        echo "  Projekt: ${VIRTUAL_ENV_PROJECT:-?}"
+        
+        # Projekt-Pfad: Entweder aus Variable oder aus VIRTUAL_ENV ableiten
+        if [[ -n "${VIRTUAL_ENV_PROJECT:-}" ]]; then
+            echo "  Projekt: $VIRTUAL_ENV_PROJECT"
+        else
+            # Leite Projekt-Pfad ab: /opt/apps/entropywatcher/venv-20260331-1756 → /opt/apps/entropywatcher
+            DERIVED_PROJECT=$(dirname "$VIRTUAL_ENV")
+            # Falls venv ein Symlink ist, zeige "abgeleitet"
+            echo "  Projekt: $DERIVED_PROJECT (abgeleitet)"
+        fi
     else
         _vs_log_info "Keine venv aktiv"
     fi
