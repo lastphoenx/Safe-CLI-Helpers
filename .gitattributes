@@ -1,0 +1,13 @@
+# Shell scripts must always use LF (Unix line endings)
+*.sh text eol=lf
+
+# Python files should use LF
+*.py text eol=lf
+
+# Markdown and text files
+*.md text
+*.txt text
+
+# YAML files
+*.yml text
+*.yaml text
