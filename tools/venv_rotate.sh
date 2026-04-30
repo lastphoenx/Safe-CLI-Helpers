@@ -69,8 +69,15 @@ fi
 SYMLINK="$PROJ_ROOT/venv"
 NEW_VENV="$PROJ_ROOT/venv-$DATE_TAG"
 
+# Auto-detect requirements.txt location if not explicitly provided
 if [[ -z "$REQ_FILE" ]]; then
-  REQ_FILE="$PROJ_ROOT/main/requirements.txt"
+  # Try root first (script-manager-ui, pcloud-tools)
+  if [[ -f "$PROJ_ROOT/requirements.txt" ]]; then
+    REQ_FILE="$PROJ_ROOT/requirements.txt"
+  # Fallback to main/ subdirectory (entropywatcher)
+  elif [[ -f "$PROJ_ROOT/main/requirements.txt" ]]; then
+    REQ_FILE="$PROJ_ROOT/main/requirements.txt"
+  fi
 fi
 
 DEFAULT_REQS=( "click>=8.1.7" "python-dotenv>=1.0.1" )

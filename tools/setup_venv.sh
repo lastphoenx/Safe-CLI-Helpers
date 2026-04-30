@@ -106,10 +106,17 @@ log_info "Upgrade pip..."
 "$VENV_PATH/bin/python" -m pip install --upgrade pip -q
 
 # === Dependencies installieren ===
-REQUIREMENTS_FILE="$PROJECT_ROOT/requirements.txt"
+# Auto-detect requirements.txt location
+if [ -f "$PROJECT_ROOT/requirements.txt" ]; then
+    REQUIREMENTS_FILE="$PROJECT_ROOT/requirements.txt"
+elif [ -f "$PROJECT_ROOT/main/requirements.txt" ]; then
+    REQUIREMENTS_FILE="$PROJECT_ROOT/main/requirements.txt"
+else
+    REQUIREMENTS_FILE=""
+fi
 
-if [ -f "$REQUIREMENTS_FILE" ]; then
-    log_info "Installiere Dependencies aus requirements.txt..."
+if [ -n "$REQUIREMENTS_FILE" ]; then
+    log_info "Installiere Dependencies aus $(basename "$(dirname "$REQUIREMENTS_FILE")")/$(basename "$REQUIREMENTS_FILE")..."
     "$VENV_PATH/bin/python" -m pip install -r "$REQUIREMENTS_FILE" -q
     log_success "Dependencies installiert"
 else
