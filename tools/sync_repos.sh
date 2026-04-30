@@ -17,6 +17,7 @@ declare -A REPOS=(
     [pcloud-tools]="/opt/apps/pcloud-tools/main"
     [rtb]="/opt/apps/rtb"
     [safe-ops-cli]="/opt/apps/safe-ops-cli/main"
+    [script-manager-ui]="/opt/apps/script-manager-ui"
 )
 
 log() { printf "%s [sync-repos] %s\n" "$(date '+%F %T')" "$*" >&2; }
