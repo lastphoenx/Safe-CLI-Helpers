@@ -15,6 +15,7 @@ FAILED=0
 declare -A REPOS=(
     [entropywatcher]="/opt/apps/entropywatcher/main"
     [pcloud-tools]="/opt/apps/pcloud-tools/main"
+    [pcloud-commander]="/opt/apps/pcloud-commander/main"
     [rtb]="/opt/apps/rtb"
     [safe-ops-cli]="/opt/apps/safe-ops-cli/main"
     [script-manager-ui]="/opt/apps/script-manager-ui"
