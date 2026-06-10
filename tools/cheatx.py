@@ -126,6 +126,31 @@ ROWS: List[Dict[str, str]] = [
      "examples":"sudo mount -o ro /dev/sdb1 /mnt/usb\nsudo umount /mnt/usb"},
     {"group":"stor","cmd":"fstab (Datei)","desc":"Persistente Mounts (Konfig)","options":"—","args":"→ /etc/fstab",
      "examples":"sudo nano /etc/fstab"},
+    # pi-nas / Backup-Stack (nas)
+    {"group":"nas","cmd":"aggregate_status.sh","desc":"Monitoring-JSON für Dashboard (status.json)",
+     "options":"—","args":"—",
+     "examples":"sudo bash /opt/apps/pcloud-tools/main/scripts/aggregate_status.sh\njq . /opt/apps/monitoring/status.json"},
+    {"group":"nas","cmd":"generate_reports.sh","desc":"Reports-JSON (reports.json, Phasen, EW)",
+     "options":"—","args":"—",
+     "examples":"sudo bash /opt/apps/pcloud-tools/main/scripts/generate_reports.sh\njq .entropywatcher.integrity_summary /opt/apps/monitoring/reports.json"},
+    {"group":"nas","cmd":"script-manager-ui","desc":"Web-UI für scripts.yaml (nach Pull neu laden)",
+     "options":"restart, status, journal -f","args":"—",
+     "examples":"sudo systemctl restart script-manager-ui\nsudo systemctl status script-manager-ui --no-pager\ncurl -s http://127.0.0.1:8000/health"},
+    {"group":"nas","cmd":"sync_repos.sh","desc":"Git Pull für alle /opt/apps Repos",
+     "options":"--status, --dry-run","args":"—",
+     "examples":"sudo -u thomas bash /opt/apps/safe-ops-cli/main/tools/sync_repos.sh --status\nsudo -u thomas bash /opt/apps/safe-ops-cli/main/tools/sync_repos.sh"},
+    {"group":"nas","cmd":"pcloud-commander","desc":"Textual-TUI: Dateien + Script-Dashboard (s)",
+     "options":"--theme, --local-root, --download-dir","args":"—",
+     "examples":"sudo /opt/apps/pcloud-commander/main/pcloud-commander.sh"},
+    {"group":"nas","cmd":"backup-pipeline","desc":"RTB + Pool-Upload (systemd)",
+     "options":"status, journal -f, journal -n 50","args":"—",
+     "examples":"sudo systemctl status backup-pipeline.service --no-pager\nsudo journalctl -u backup-pipeline.service -f -o short-iso\nsudo journalctl -u backup-pipeline.service -n 50 --no-pager"},
+    {"group":"nas","cmd":"pcloud_status.sh","desc":"MariaDB Backup-Runs (letzte / Fehler / läuft)",
+     "options":"--last-n N, --failures, --current, --stats","args":"—",
+     "examples":"sudo bash /opt/apps/pcloud-tools/main/pcloud_status.sh\nsudo bash /opt/apps/pcloud-tools/main/pcloud_status.sh --current"},
+    {"group":"nas","cmd":"pcloud_pool_gc.py","desc":"Pool-GC + Retention (immer zuerst Prognose/Dry-Run)",
+     "options":"--retention-forecast, --retention-apply, --dry-run","args":"--pool-root",
+     "examples":"cd /opt/apps/pcloud-tools/main\npython pcloud_pool_gc.py --env-file .env --pool-root /Backup/rtb_pool --retention-forecast"},
 ]
 
 GROUPS = {
@@ -138,6 +163,7 @@ GROUPS = {
     "pkg":"Pakete",
     "proc":"Prozesse",
     "stor":"Storage/FS",
+    "nas":"pi-nas Ops",
 }
 GROUP_ABBR = {k:k for k in GROUPS}  # Kurzlabel in Tabelle
 
@@ -249,6 +275,7 @@ def cli(ctx, examples):
 @click.option("--pkg", is_flag=True, help="Pakete")
 @click.option("--proc", is_flag=True, help="Prozesse")
 @click.option("--stor", is_flag=True, help="Storage/Speicher")
+@click.option("--nas", is_flag=True, help="pi-nas Backup-Stack (aggregate, sync, commander, …)")
 @click.option("--all", "all_", is_flag=True, help="Alle Gruppen")
 @click.option("--search", "-s", type=str, default="", help="Regex in Befehl/Beschreibung/Beispielen")
 @click.option("--format", "fmt", type=click.Choice(["table","md","plain"]), default="table", help="Ausgabeformat")
@@ -258,10 +285,10 @@ def cli(ctx, examples):
 @click.option("--examples-lines", type=int, default=1, help="Wie viele Beispielzeilen pro Eintrag")
 @click.option("--compact", is_flag=True, help="Kompakter Tabellenmodus")
 @click.option("--wide", is_flag=True, help="Breitere Spalten (mehr Platz für Beschreibung/Optionen)")
-def show(dv,bv,rv,vs,sys_,net,pkg,proc,stor,all_,search,fmt,page,per_page,no_examples,examples_lines,compact,wide):
+def show(dv,bv,rv,vs,sys_,net,pkg,proc,stor,nas,all_,search,fmt,page,per_page,no_examples,examples_lines,compact,wide):
     """Befehle strukturiert anzeigen (gruppiert, paginiert, kompakt/wide)."""
     groups = []
-    if all_ or not any([dv,bv,rv,vs,sys_,net,pkg,proc,stor]):
+    if all_ or not any([dv,bv,rv,vs,sys_,net,pkg,proc,stor,nas]):
         groups = list(GROUPS.keys())
     else:
         if dv: groups.append("dv")
@@ -273,6 +300,7 @@ def show(dv,bv,rv,vs,sys_,net,pkg,proc,stor,all_,search,fmt,page,per_page,no_exa
         if pkg: groups.append("pkg")
         if proc: groups.append("proc")
         if stor: groups.append("stor")
+        if nas: groups.append("nas")
 
     rows = filter_rows(groups, search)
     page_rows, cur, pages = paginate(rows, page, per_page)
@@ -317,6 +345,10 @@ cheatx.py show --all -s zip --per-page 10 --page 2
 
 # Gruppenübersicht
 cheatx.py groups
+
+# pi-nas / Backup-Stack
+cheatx.py show --nas --examples-lines 3
+cheatx.py show --nas -s aggregate
 """
 
 if __name__ == "__main__":
