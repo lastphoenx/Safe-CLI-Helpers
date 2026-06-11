@@ -139,12 +139,12 @@ ROWS: List[Dict[str, str]] = [
     {"group":"nas","cmd":"sync_repos.sh","desc":"Git Pull für alle /opt/apps Repos",
      "options":"--status, --dry-run","args":"—",
      "examples":"sudo -u thomas bash /opt/apps/safe-ops-cli/main/tools/sync_repos.sh --status\nsudo -u thomas bash /opt/apps/safe-ops-cli/main/tools/sync_repos.sh"},
-    {"group":"nas","cmd":"pcloud-commander","desc":"Textual-TUI: Dateien + Script-Dashboard (s)",
+    {"group":"nas","cmd":"pcloud-commander","desc":"Textual-TUI: Dateien + Script-Dashboard (s → Pool Restore)",
      "options":"--theme, --local-root, --download-dir","args":"—",
-     "examples":"sudo /opt/apps/pcloud-commander/main/pcloud-commander.sh"},
-    {"group":"nas","cmd":"pool_restore.py","desc":"Pool Restore + Versions-Historie aller Snapshots",
-     "options":"--all-versions, --only-changed, --download","args":"--relpath, --filter",
-     "examples":"cd /opt/apps/pcloud-tools/main\npython scripts/utilities/pool_restore.py --env-file .env --pool-root /Backup/rtb_pool --all-versions --relpath 'Gemeinsam/Rest/datei.pdf'\npython scripts/utilities/pool_restore.py --env-file .env --pool-root /Backup/rtb_pool --all-versions --relpath 'Gemeinsam/Rest/datei.pdf' --out-dir /srv/nas/restore --download --verify --only-changed"},
+     "examples":"sudo /opt/apps/pcloud-commander/main/pcloud-commander.sh\n# s → Recovery → Pool Restore (gleich wie Script-Manager)\n# d = nur Live-pCloud, NICHT Pool-Restore"},
+    {"group":"nas","cmd":"pool_restore.py","desc":"Pool-Restore: Stufe1 Timeline, Stufe2 Download (Stubs → _pool)",
+     "options":"--list-snapshots, --snapshot, --all-versions, --only-changed, --download, --verify","args":"--relpath, --filter, --out-dir",
+     "examples":"cd /opt/apps/pcloud-tools/main && source ../venv/bin/activate && set -a && source .env && set +a\n# Stufe 1 — Timeline (nur Anzeige, changed/same pro Snapshot):\npython scripts/utilities/pool_restore.py --env-file .env --pool-root /Backup/rtb_pool --all-versions --relpath 'Gemeinsam/Rest/dokument.pdf'\n# Stufe 2 — geänderte Versionen nach /srv/nas/restore/_versions/...:\npython scripts/utilities/pool_restore.py --env-file .env --pool-root /Backup/rtb_pool --all-versions --relpath 'Gemeinsam/Rest/dokument.pdf' --out-dir /srv/nas/restore --download --verify --only-changed\n# Ein Snapshot: --snapshot 2026-06-10-040013 --relpath '…' --out-dir /srv/nas/restore --download --verify\n# UI: Commander s oder http://192.168.141.140:8000 → Pool Restore"},
     {"group":"nas","cmd":"rtb_delta_report.sh","desc":"RTB Delta: rsync -ni vs. latest, Top-Ordner gruppiert",
      "options":"--top-n N, --full-listing","args":"—",
      "examples":"sudo bash /opt/apps/rtb/rtb_delta_report.sh\nsudo bash /opt/apps/rtb/rtb_delta_report.sh --full-listing"},
@@ -355,6 +355,7 @@ cheatx.py groups
 # pi-nas / Backup-Stack
 cheatx.py show --nas --examples-lines 3
 cheatx.py show --nas -s aggregate
+cheatx.py show --nas -s pool_restore --examples-lines 8 --wide
 """
 
 if __name__ == "__main__":
