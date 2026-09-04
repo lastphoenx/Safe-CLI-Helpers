@@ -98,7 +98,11 @@ scan_unified_diff() {
 _check_risky_filenames() {
   local names="$1"
   [ -z "$names" ] && return 0
-  if echo "$names" | grep -E '\.env($|\.|/)|(^|/)state/|\.pem$|\.key$|(^|/)credentials(\.|$)|id_rsa($|\.|/)|\.p12$|\.pfx$|secrets\.json$' >/dev/null; then
+  # .env.example / .env.sample sind Templates — keine echten Secrets
+  local risky
+  risky=$(echo "$names" | grep -vE '(^|/)\.env\.(example|sample|template)$' \
+    | grep -E '\.env($|\.|/)|(^|/)state/|\.pem$|\.key$|(^|/)credentials(\.|$)|id_rsa($|\.|/)|\.p12$|\.pfx$|secrets\.json$' || true)
+  if [ -n "$risky" ]; then
     echo -e "${RED}ABBRUCH: Sensible Dateien dürfen nicht committed werden (.env, Keys, state/, credentials).${NC}" >&2
     return 1
   fi
