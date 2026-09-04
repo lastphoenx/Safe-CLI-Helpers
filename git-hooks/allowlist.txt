@@ -1,0 +1,21 @@
+# Erlaubte Platzhalter / Beispielwerte (Substring, case-insensitive).
+# Wenn eine Zeile NUR wegen eines Denylist-Treffers blockiert würde,
+# aber die ganze Zeile einen Allowlist-Eintrag enthält → erlaubt.
+
+dein.name@example.com
+example.com
+example.org
+@example.com
+YOUR_PASSWORD
+DEIN_APP_PASSWORT
+DEIN_PASSWORT
+changeme
+placeholder
+<password>
+<secret>
+xxx
+TODO
+FIXME
+redacted
+REDACTED
+geheim

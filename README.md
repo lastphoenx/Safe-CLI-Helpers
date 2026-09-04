@@ -6,6 +6,7 @@ Four small but robust CLI helpers for Linux admins:
 - **gix** – safer everyday Git workflow (branches, push/pull, release) with confirmations and guard rails.
 - **cheatx** – interactive Linux command cheat sheet with search and examples.
 - **sync_repos.sh** – automated Git repository sync (fetch/pull) for multiple repos with status checks.
+- **git-hooks/** – zentraler PII/Secret-Schutz (pre-commit) für alle Repos unter `github_code` — siehe [docs/git-hooks.md](docs/git-hooks.md).
 
 ## Quick install
 

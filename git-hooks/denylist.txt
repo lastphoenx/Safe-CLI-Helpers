@@ -1,0 +1,15 @@
+# Persönliche / private Strings — Treffer blockieren den Commit (case-insensitive).
+# Ein Muster pro Zeile; # = Kommentar. Substring-Match (grep -Fi).
+
+@gmx.ch
+gmx.net
+@gmail.com
+@unibas.ch
+Basel
+Hellikon
+Aargau
+Thomas
+Monika
+Giulia
+Local LLMli
+santinel

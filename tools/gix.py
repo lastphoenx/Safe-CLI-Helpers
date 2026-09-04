@@ -362,43 +362,52 @@ def remote_set(ctx, fetch_url, push_url):
 
 # --------------------------- pre-commit hook ---------------------------
 
+HOOKS_DIR = Path(__file__).resolve().parent.parent / "git-hooks"
+
 @cli.group()
 def protect():
-    """Schutz-Hooks: verhindern, dass .env/Keys committed werden."""
+    """Schutz-Hooks: PII/Secrets blockieren (zentrales git-hooks/)."""
     pass
 
-HOOK_CONTENT = """#!/usr/bin/env bash
-set -e
-names="$(git diff --cached --name-only)"
-if echo "$names" | grep -E '\\.env($|\\.|/)|(^|/)state/|\\.pem$|\\.key$' >/dev/null; then
-  echo 'ABBRUCH: .env/state/Keys dürfen nicht committed werden.' >&2
-  exit 1
-fi
-"""
+def _hooks_path_unix() -> str:
+    return HOOKS_DIR.as_posix()
 
 @protect.command("install")
 @click.pass_context
 def protect_install(ctx):
-    """Installiert einen pre-commit Hook gegen Secrets."""
+    """Verknüpft Repo mit zentralem PII/Secret-Hook (core.hooksPath)."""
     repo: Path = ctx.obj["repo"]
-    hooks = repo / ".git" / "hooks"
-    hooks.mkdir(parents=True, exist_ok=True)
-    path = hooks / "pre-commit"
-    path.write_text(HOOK_CONTENT)
-    os.chmod(path, 0o755)
-    click.echo(click.style(f"✓ Hook installiert: {path}", fg="green"))
+    if not (HOOKS_DIR / "pre-commit").is_file():
+        click.echo(click.style(f"✖ Hooks nicht gefunden: {HOOKS_DIR}", fg="red"))
+        sys.exit(2)
+    run(["git", "config", "core.hooksPath", _hooks_path_unix()], repo)
+    click.echo(click.style(f"✓ core.hooksPath → {_hooks_path_unix()}", fg="green"))
+    click.echo("  Siehe docs/git-hooks.md (Denylist, Gitleaks, install-all).")
 
 @protect.command("uninstall")
 @click.pass_context
 def protect_uninstall(ctx):
-    """Entfernt den pre-commit Hook."""
+    """Entfernt core.hooksPath für dieses Repo."""
     repo: Path = ctx.obj["repo"]
-    path = repo / ".git" / "hooks" / "pre-commit"
-    if path.exists():
-        path.unlink()
-        click.echo(click.style("✓ Hook entfernt.", fg="green"))
-    else:
-        click.echo("Kein Hook vorhanden.")
+    try:
+        run(["git", "config", "--unset", "core.hooksPath"], repo)
+        click.echo(click.style("✓ core.hooksPath entfernt.", fg="green"))
+    except subprocess.CalledProcessError:
+        click.echo("Kein Hook konfiguriert.")
+
+@protect.command("install-all")
+@click.option("--root", default=None, help="github_code-Root (Default: Parent von Safe-CLI-Helpers)")
+@click.pass_context
+def protect_install_all(ctx, root):
+    """Aktiviert Hooks für alle Git-Repos unter github_code (Windows: install-git-hooks.ps1)."""
+    script = HOOKS_DIR.parent / "scripts" / "install-git-hooks.ps1"
+    if not script.is_file():
+        click.echo(click.style(f"✖ {script} nicht gefunden.", fg="red"))
+        sys.exit(2)
+    cmd = ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(script)]
+    if root:
+        cmd += ["-Root", root]
+    subprocess.run(cmd, check=True)
 
 # --------------------------- examples ---------------------------
 
