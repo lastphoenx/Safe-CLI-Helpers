@@ -1,136 +1,32 @@
 #!/usr/bin/env bash
-# Zentraler pre-commit: blockiert private Daten, Secrets und riskante Dateien.
+# pre-commit: nur staged Diff-Zeilen prüfen (schnell, kein Vollscan).
 
 set -eu
 
 HOOK_DIR="$(cd "$(dirname "$0")" && pwd)"
-DENYLIST="${HOOK_DIR}/denylist.txt"
-ALLOWLIST="${HOOK_DIR}/allowlist.txt"
-
 RED='\033[0;31m'
 YEL='\033[0;33m'
 NC='\033[0m'
-
-blocked=0
 DENY_PATTERNS=()
 ALLOW_PATTERNS=()
 
-echo "🔒 Privacy/Secret pre-commit scan..."
+# shellcheck source=scan-lib.sh
+. "${HOOK_DIR}/scan-lib.sh"
 
-trim() {
-  local s="$1"
-  s="${s%%#*}"
-  s="$(echo "$s" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
-  printf '%s' "$s"
-}
-
-load_patterns() {
-  local line
-  while IFS= read -r line || [ -n "$line" ]; do
-    line="$(trim "$line")"
-    [ -z "$line" ] && continue
-    DENY_PATTERNS+=("$line")
-  done < "$DENYLIST"
-  while IFS= read -r line || [ -n "$line" ]; do
-    line="$(trim "$line")"
-    [ -z "$line" ] && continue
-    ALLOW_PATTERNS+=("$line")
-  done < "$ALLOWLIST"
-}
-
-load_patterns
 shopt -s nocasematch
+load_scan_patterns
 
-contains_ci() {
-  [[ "$1" == *"$2"* ]]
-}
+names="$(git diff --cached --name-only --diff-filter=ACM 2>/dev/null || true)"
+_check_risky_filenames "$names" || exit 1
 
-# --- Riskante Dateinamen ---
-names="$(git diff --cached --name-only 2>/dev/null || true)"
-if [ -n "$names" ]; then
-  if echo "$names" | grep -E '\.env($|\.|/)|(^|/)state/|\.pem$|\.key$|(^|/)credentials(\.|$)|id_rsa($|\.|/)|\.p12$|\.pfx$|secrets\.json$' >/dev/null; then
-    echo -e "${RED}ABBRUCH: Sensible Dateien dürfen nicht committed werden (.env, Keys, state/, credentials).${NC}" >&2
+diff="$(git diff --cached -U0 --no-color --no-ext-diff 2>/dev/null || true)"
+if [ -n "$diff" ]; then
+  if ! scan_unified_diff "$diff"; then
+    echo "" >&2
+    echo -e "${YEL}Commit abgebrochen.${NC} Private Daten entfernen oder Platzhalter nutzen (git-hooks/allowlist.txt)." >&2
     exit 1
   fi
 fi
 
-line_allowed() {
-  local line="$1"
-  local allow
-  for allow in "${ALLOW_PATTERNS[@]}"; do
-    contains_ci "$line" "$allow" && return 0
-  done
-  return 1
-}
-
-check_line_secrets() {
-  local file="$1"
-  local num="$2"
-  local line="$3"
-  local pattern allow val lval
-
-  line_allowed "$line" && return 0
-
-  if [[ "$line" =~ ([Pp][Aa][Ss][Ss]([Ww][Oo][Rr][Tt])?|[Ss][Ee][Cc][Rr][Ee][Tt]|[Aa][Pp][Ii][_-]?[Kk][Ee][Yy]|[Cc][Ll][Ii][Ee][Nn][Tt][_-]?[Ss][Ee][Cc][Rr][Ee][Tt]|[Aa][Uu][Tt][Hh][_-]?[Tt][Oo][Kk][Ee][Nn]|[Aa][Cc][Cc][Ee][Ss][Ss][_-]?[Tt][Oo][Kk][Ee][Nn]|[Pp][Rr][Ii][Vv][Aa][Tt][Ee][_-]?[Kk][Ee][Yy])[[:space:]]*[:=][[:space:]]*[^[:space:]#]+ ]]; then
-    val="${BASH_REMATCH[0]}"
-    val="$(echo "$val" | sed -E 's/^[^=:]*[:=][[:space:]]*//;s/[[:space:]]*#.*//;s/^["'\'']//;s/["'\'']$//;s/[[:space:]]*$//')"
-    lval="$(echo "$val" | tr '[:upper:]' '[:lower:]')"
-    case "$lval" in
-      dein_*|your_*|changeme|placeholder|example|xxx|redacted|geheim|""|*example.com*|*example.org*)
-        return 0 ;;
-    esac
-    echo -e "${RED}BLOCKIERT${NC} ${file}:${num} — mögliches Passwort/Secret in Zuweisung" >&2
-    echo "  → ${line}" >&2
-    return 1
-  fi
-
-  if contains_ci "$line" "BEGIN PRIVATE KEY" || contains_ci "$line" "BEGIN RSA PRIVATE KEY" || contains_ci "$line" "BEGIN OPENSSH PRIVATE KEY"; then
-    echo -e "${RED}BLOCKIERT${NC} ${file}:${num} — Private Key im Inhalt" >&2
-    return 1
-  fi
-
-  for pattern in "${DENY_PATTERNS[@]}"; do
-    if contains_ci "$line" "$pattern"; then
-      echo -e "${RED}BLOCKIERT${NC} ${file}:${num} — privater String «${pattern}»" >&2
-      echo "  → ${line}" >&2
-      return 1
-    fi
-  done
-
-  return 0
-}
-
-scan_staged_file() {
-  local file="$1"
-  local content line_num=0 line
-
-  git cat-file -e ":${file}" 2>/dev/null || return 0
-  case "$file" in git-hooks/*) return 0 ;; esac
-  if git diff --cached --numstat -- "$file" 2>/dev/null | awk '{print $1}' | grep -q '^-$'; then
-    return 0
-  fi
-
-  content="$(git show ":${file}" 2>/dev/null)" || return 0
-  while IFS= read -r line || [ -n "$line" ]; do
-    line_num=$((line_num + 1))
-    if ! check_line_secrets "$file" "$line_num" "$line"; then
-      blocked=1
-    fi
-  done <<< "$content"
-}
-
-staged_files="$(git diff --cached --name-only --diff-filter=ACM 2>/dev/null || true)"
-while IFS= read -r f; do
-  [ -z "$f" ] && continue
-  scan_staged_file "$f"
-done <<< "$staged_files"
-
 shopt -u nocasematch
-
-if [ "$blocked" -ne 0 ]; then
-  echo "" >&2
-  echo -e "${YEL}Commit abgebrochen.${NC} Entferne private Daten oder nutze Platzhalter (siehe git-hooks/allowlist.txt)." >&2
-  exit 1
-fi
-
 exit 0

@@ -31,13 +31,22 @@ Platzhalter in `allowlist.txt` sind erlaubt, z.B. `dein.name@example.com`, `DEIN
 
 Denylist/Allowlist bei Bedarf anpassen — gilt für **alle** Repos mit installiertem Hook.
 
+Listen werden beim ersten Lauf nach `%LOCALAPPDATA%\safe-cli-git-hooks\` gespiegelt (nur bei Änderung neu kopiert) — schneller als OneDrive bei jedem Commit.
+
 ## Gitleaks (empfohlen)
 
 ```powershell
 winget install Gitleaks.Gitleaks
 ```
 
-Ohne Gitleaks laufen Denylist + Secret-Regex trotzdem.
+Ohne Gitleaks laufen Denylist + Secret-Regex trotzdem. **pre-commit/pre-push** prüfen nur geänderte Zeilen (Diff) — typisch unter 1 Sekunde.
+
+Gitleaks beim Push nur opt-in (kann sonst sehr langsam sein):
+
+```powershell
+$env:GITLEAKS_PRE_PUSH = "1"   # nur wenn gewünscht
+git push
+```
 
 ## Deaktivieren
 

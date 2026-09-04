@@ -1,29 +1,58 @@
 #!/usr/bin/env bash
-# pre-push: scannt ausgehende Commits mit Gitleaks (falls installiert).
+# pre-push: schneller PII-Scan auf ausgehendem Diff; Gitleaks nur opt-in.
 
 set -eu
 
-if ! command -v gitleaks >/dev/null 2>&1; then
-  exit 0
-fi
+HOOK_DIR="$(cd "$(dirname "$0")" && pwd)"
+RED='\033[0;31m'
+YEL='\033[0;33m'
+NC='\033[0m'
+DENY_PATTERNS=()
+ALLOW_PATTERNS=()
 
-echo "🔒 Gitleaks pre-push scan..."
-remote="${1:-origin}"
+# shellcheck source=scan-lib.sh
+. "${HOOK_DIR}/scan-lib.sh"
+
+shopt -s nocasematch
+load_scan_patterns
+
+refs="$(cat)"
+[ -z "$refs" ] && { shopt -u nocasematch; exit 0; }
 
 while read -r local_ref local_sha remote_ref remote_sha; do
-  [ -z "$local_sha" ] && continue
-  if [ "$local_sha" = "0000000000000000000000000000000000000000" ]; then
-    continue
-  fi
+  [ -n "$local_sha" ] || continue
+  [ "$local_sha" != "0000000000000000000000000000000000000000" ] || continue
+
   if [ "$remote_sha" = "0000000000000000000000000000000000000000" ]; then
-    range="$local_sha"
+    diff="$(git show "$local_sha" -U0 --no-color --no-ext-diff 2>/dev/null || true)"
+    names="$(git diff-tree --no-commit-id --name-only -r "$local_sha" 2>/dev/null || true)"
   else
-    range="${remote_sha}..${local_sha}"
+    diff="$(git diff "$remote_sha" "$local_sha" -U0 --no-color --no-ext-diff 2>/dev/null || true)"
+    names="$(git diff --name-only "$remote_sha" "$local_sha" 2>/dev/null || true)"
   fi
-  if ! gitleaks detect --log-opts="$range" --redact --verbose 2>&1; then
-    echo "ABBRUCH: Gitleaks hat Secrets in ausgehenden Commits gefunden." >&2
+
+  _check_risky_filenames "$names" || exit 1
+  if [ -n "$diff" ] && ! scan_unified_diff "$diff"; then
+    echo "" >&2
+    echo -e "${YEL}Push abgebrochen.${NC} Private Daten in ausgehenden Commits gefunden." >&2
     exit 1
   fi
-done
+done <<< "$refs"
+
+shopt -u nocasematch
+
+# Gitleaks ist langsam — nur wenn explizit aktiviert (z.B. in CI oder vor öffentlichem Push)
+if [ "${GITLEAKS_PRE_PUSH:-0}" = "1" ] && command -v gitleaks >/dev/null 2>&1; then
+  while read -r local_ref local_sha remote_ref remote_sha; do
+    [ -n "$local_sha" ] || continue
+    [ "$local_sha" != "0000000000000000000000000000000000000000" ] || continue
+    if [ "$remote_sha" = "0000000000000000000000000000000000000000" ]; then
+      range="$local_sha"
+    else
+      range="${remote_sha}..${local_sha}"
+    fi
+    gitleaks detect --log-opts="$range" --redact --no-banner 2>&1 || exit 1
+  done <<< "$refs"
+fi
 
 exit 0
