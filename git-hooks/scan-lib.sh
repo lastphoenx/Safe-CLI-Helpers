@@ -32,9 +32,22 @@ _line_allowed() {
   return 1
 }
 
-_check_line() {
+_removed_lines_contain_pattern() {
+  local removed="$1"
+  local pattern="$2"
+  local rline
+  while IFS= read -r rline || [ -n "$rline" ]; do
+    [[ "$rline" == *"$pattern"* ]] && return 0
+  done <<< "$removed"
+  return 1
+}
+
+# Prüft eine hinzugefügte Zeile. Entfernte Zeilen derselben Datei im Diff
+# dürfen dieselben Muster enthalten (Cleanup-Commit) — blockiert nur NEUE Einführung.
+_check_added_line() {
   local file="$1"
   local line="$2"
+  local removed="$3"
   local pattern val lval
 
   _line_allowed "$line" && return 0
@@ -64,7 +77,10 @@ _check_line() {
 
   for pattern in "${DENY_PATTERNS[@]}"; do
     if [[ "$line" == *"$pattern"* ]]; then
-      echo -e "${RED}BLOCKIERT${NC} ${file} — privater String «${pattern}»" >&2
+      if _removed_lines_contain_pattern "$removed" "$pattern"; then
+        continue
+      fi
+      echo -e "${RED}BLOCKIERT${NC} ${file} — privater String «${pattern}» (neu eingeführt)" >&2
       echo "  → ${line}" >&2
       return 1
     fi
@@ -72,22 +88,34 @@ _check_line() {
   return 0
 }
 
-# Scannt nur hinzugefügte/geänderte Zeilen aus einem unified diff ( -U0 ).
+# Legacy alias
+_check_line() {
+  _check_added_line "$1" "$2" ""
+}
+
+# Scannt nur hinzugefügte Zeilen; gesammelte Entfernungen pro Datei werden berücksichtigt.
 scan_unified_diff() {
   local diff="$1"
   local current="" line content blocked=0
+  local removed_buf=""
 
   while IFS= read -r line || [ -n "$line" ]; do
     case "$line" in
       "+++ b/"*)
         current="${line#+++ b/}"
+        removed_buf=""
         case "$current" in git-hooks/*|/dev/null) current="" ;; esac
         ;;
-      "+++ "*) current="" ;;
+      "+++ "*) current="" ; removed_buf="" ;;
+      "-"*)
+        [ -z "$current" ] && continue
+        content="${line#-}"
+        removed_buf+="${content}"$'\n'
+        ;;
       "+"*)
         [ -z "$current" ] && continue
         content="${line#+}"
-        _check_line "$current" "$content" || blocked=1
+        _check_added_line "$current" "$content" "$removed_buf" || blocked=1
         ;;
     esac
   done <<< "$diff"
@@ -98,9 +126,8 @@ scan_unified_diff() {
 _check_risky_filenames() {
   local names="$1"
   [ -z "$names" ] && return 0
-  # .env.example / .env.sample sind Templates — keine echten Secrets
   local risky
-  risky=$(echo "$names" | grep -vE '(^|/)\.env\.(example|sample|template)$' \
+  risky=$(echo "$names" | grep -vE '(^|/)\.env(\.[a-zA-Z0-9_-]+)?\.(example|sample|template)$' \
     | grep -E '\.env($|\.|/)|(^|/)state/|\.pem$|\.key$|(^|/)credentials(\.|$)|id_rsa($|\.|/)|\.p12$|\.pfx$|secrets\.json$' || true)
   if [ -n "$risky" ]; then
     echo -e "${RED}ABBRUCH: Sensible Dateien dürfen nicht committed werden (.env, Keys, state/, credentials).${NC}" >&2

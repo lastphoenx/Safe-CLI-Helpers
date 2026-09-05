@@ -23,7 +23,7 @@ diff="$(git diff --cached -U0 --no-color --no-ext-diff 2>/dev/null || true)"
 if [ -n "$diff" ]; then
   if ! scan_unified_diff "$diff"; then
     echo "" >&2
-    echo -e "${YEL}Commit abgebrochen.${NC} Private Daten entfernen oder Platzhalter nutzen (git-hooks/allowlist.txt)." >&2
+    echo -e "${YEL}Commit abgebrochen.${NC} Private Daten entfernen oder Platzhalter nutzen (allowlist.txt / denylist.txt lokal)." >&2
     exit 1
   fi
 fi

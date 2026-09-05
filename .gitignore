@@ -10,3 +10,8 @@ __pycache__/
 .vscode/
 .idea/
 .DS_Store
+
+# Git-Hooks: persönliche Denylist nur lokal (nicht ins öffentliche Repo)
+git-hooks/denylist.txt
+git-hooks/denylist.local.txt
+

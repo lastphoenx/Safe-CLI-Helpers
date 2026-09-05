@@ -138,7 +138,7 @@ ROWS: List[Dict[str, str]] = [
      "examples":"sudo systemctl restart script-manager-ui\nsudo systemctl status script-manager-ui --no-pager\ncurl -s http://127.0.0.1:8000/health"},
     {"group":"nas","cmd":"sync_repos.sh","desc":"Git Pull für alle /opt/apps Repos",
      "options":"--status, --dry-run","args":"—",
-     "examples":"sudo -u thomas bash /opt/apps/safe-ops-cli/main/tools/sync_repos.sh --status\nsudo -u thomas bash /opt/apps/safe-ops-cli/main/tools/sync_repos.sh"},
+     "examples":"sudo -u nasuser bash /opt/apps/safe-ops-cli/main/tools/sync_repos.sh --status\nsudo -u nasuser bash /opt/apps/safe-ops-cli/main/tools/sync_repos.sh"},
     {"group":"nas","cmd":"pcloud-commander","desc":"Textual-TUI: Dateien + Script-Dashboard (s → Pool Restore)",
      "options":"--theme, --local-root, --download-dir","args":"—",
      "examples":"sudo /opt/apps/pcloud-commander/main/pcloud-commander.sh\n# s → Recovery → Pool Restore (gleich wie Script-Manager)\n# d = nur Live-pCloud, NICHT Pool-Restore"},

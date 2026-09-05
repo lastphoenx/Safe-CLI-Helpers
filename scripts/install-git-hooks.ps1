@@ -23,6 +23,14 @@ if (-not (Test-Path (Join-Path $HooksDir "pre-commit"))) {
     exit 1
 }
 
+if (-not (Test-Path (Join-Path $HooksDir "denylist.txt"))) {
+    $example = Join-Path $HooksDir "denylist.example.txt"
+    if (Test-Path $example) {
+        Copy-Item $example (Join-Path $HooksDir "denylist.txt")
+        Write-Host "  -> denylist.txt aus denylist.example.txt erstellt — bitte lokal anpassen." -ForegroundColor Yellow
+    }
+}
+
 Write-Host "Hooks-Verzeichnis: $HooksDir"
 Write-Host "Scanne Repos unter: $Root"
 Write-Host ""

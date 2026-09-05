@@ -1,6 +1,7 @@
 # Erlaubte Platzhalter / Beispielwerte (Substring, case-insensitive).
 # Wenn eine Zeile NUR wegen eines Denylist-Treffers blockiert würde,
 # aber die ganze Zeile einen Allowlist-Eintrag enthält → erlaubt.
+# Nur generische Platzhalter — persönliches nie whitelisten, sondern im Code ersetzen.
 
 dein.name@example.com
 example.com
@@ -19,10 +20,7 @@ FIXME
 redacted
 REDACTED
 geheim
-example.app
 192.168.
-example-bank
-example-bank-region
 CM_JOURNAL_CMD
 Rechnung ohne Werte
 PersonA
@@ -33,3 +31,14 @@ Gesundheit PersonA
 user-a
 user-b
 user-c
+example-university.edu
+example-llm.test
+example.app
+Beispiel-Universität
+Alex Beispiel
+Max Muster
+Baseline
+Local LLM
+colleague@example-university.edu
+dev@example-university.edu
+submission-controlling@example-university.edu

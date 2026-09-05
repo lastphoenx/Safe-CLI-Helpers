@@ -1,0 +1,12 @@
+# Lokale Denylist — NICHT committen.
+# Kopie:  cp denylist.example.txt denylist.txt  &&  denylist.txt anpassen
+# denylist.txt steht in .gitignore (persönliche Muster nur lokal).
+#
+# Ein Muster pro Zeile; # = Kommentar. Substring-Match (case-insensitive).
+
+@my-private-mail.example
+my-internal-domain.example
+Ortsname-Beispiel
+Vorname-Beispiel
+Nachname-Beispiel
+interner-host-token

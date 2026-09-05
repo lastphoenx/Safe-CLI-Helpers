@@ -16,22 +16,46 @@ Oder einzelnes Repo:
 python tools/gix.py protect install
 ```
 
+## Denylist (lokal, nicht im Repo)
+
+Persönliche Muster stehen in **`git-hooks/denylist.txt`** — diese Datei ist **gitignored** und wird nicht gepusht.
+
+```powershell
+cd Safe-CLI-Helpers\git-hooks
+copy denylist.example.txt denylist.txt
+# denylist.txt lokal bearbeiten
+```
+
+Im Repo liegt nur `denylist.example.txt` (Platzhalter-Format, ohne echte Namen).
+
+## Allowlist (öffentlich)
+
+Nur **generische** Platzhalter in `allowlist.txt`, z. B. `example.com`, `PersonA`, `Max Muster`.
+Persönliches nie whitelisten — im Quelltext ersetzen.
+
 ## Was blockiert wird
 
 | Kategorie | Beispiele |
 |-----------|-----------|
 | **Dateinamen** | `.env`, `.pem`, `.key`, `state/`, `credentials`, `secrets.json` |
-| **PII (denylist.txt)** | private E-Mail-Domains, Orte, Vornamen, Nachnamen, interne Host-/Domain-Strings (siehe `denylist.txt`) |
+| **PII (denylist.txt, lokal)** | private Domains, Namen, interne Host-Strings |
 | **Secrets im Text** | Klartext-Zuweisungen (Passwort, API-Key, Private Keys) |
 | **Gitleaks** (optional) | AWS-Keys, Tokens, weitere bekannte Secret-Patterns |
 
-## Allowlist
+## Cleanup-Commits
 
-Platzhalter in `allowlist.txt` sind erlaubt, z.B. `dein.name@example.com`, `DEIN_APP_PASSWORT`, `example.com`.
+Der Hook prüft nur **hinzugefügte** Zeilen (`+`). Entfernte Zeilen (`-`) blockieren nicht.
+Wird ein Muster in derselben Datei entfernt und nicht neu eingeführt, ist der Commit erlaubt
+(kein Block nur weil alte sensible Zeilen im Diff stehen).
 
-Denylist/Allowlist bei Bedarf anpassen — gilt für **alle** Repos mit installiertem Hook.
+## Repos prüfen (Audit)
 
-Listen werden beim ersten Lauf nach `%LOCALAPPDATA%\safe-cli-git-hooks\` gespiegelt (nur bei Änderung neu kopiert) — schneller als OneDrive bei jedem Commit.
+```powershell
+cd Safe-CLI-Helpers
+.\tools\scan-repos.ps1
+.\tools\scan-repos.ps1 -Diff          # nur unstaged Änderungen
+.\tools\scan-repos.ps1 -Staged        # nur Index
+```
 
 ## Gitleaks (empfohlen)
 
@@ -60,5 +84,5 @@ git config --unset core.hooksPath         # manuell
 ## Hinweise
 
 - Hooks schützen nur **neue** Commits. Bestehende History bleibt unverändert.
-- Sehr generische Vornamen in der Denylist können False Positives erzeugen — Zeile anpassen oder Allowlist erweitern.
+- Listen werden nach `%LOCALAPPDATA%\safe-cli-git-hooks\` gespiegelt (nur bei Änderung neu kopiert).
 - Öffentliche Repos zusätzlich mit GitHub Secret Scanning / Gitleaks CI absichern.
