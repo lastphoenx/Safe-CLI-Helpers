@@ -41,4 +41,6 @@ Baseline
 Local LLM
 colleague@example-university.edu
 dev@example-university.edu
-submission-controlling@example-university.edu
+sk-dein-key
+Bearer sk-dein
+LOCAL_LLM_

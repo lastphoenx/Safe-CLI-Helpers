@@ -62,7 +62,7 @@ _check_added_line() {
     val="${val#\'}"; val="${val%\'}"
     lval="${val,,}"
     case "$lval" in
-      dein_*|your_*|changeme|placeholder|example|xxx|redacted|geheim|""|*example.com*|*example.org*)
+      none|dein_*|your_*|changeme|placeholder|example|xxx|redacted|geheim|""|*example.com*|*example.org*|sk-dein*|*dein-key*)
         return 0 ;;
     esac
     echo -e "${RED}BLOCKIERT${NC} ${file} — mögliches Passwort/Secret in Zuweisung" >&2
