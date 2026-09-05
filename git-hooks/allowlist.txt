@@ -19,3 +19,17 @@ FIXME
 redacted
 REDACTED
 geheim
+example.app
+192.168.
+example-bank
+example-bank-region
+CM_JOURNAL_CMD
+Rechnung ohne Werte
+PersonA
+PersonB
+Person B
+Gesundheit_PersonB
+Gesundheit PersonA
+user-a
+user-b
+user-c
