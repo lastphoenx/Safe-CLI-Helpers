@@ -106,6 +106,7 @@ if (Test-Path (Join-Path $Root ".git")) {
     Scan-OneRepo -RepoPath $Root -RepoName (Split-Path $Root -Leaf)
 } else {
     Get-ChildItem -Path $Root -Directory | ForEach-Object {
+        if ($_.Name -eq 'doku') { return }
         $gitDir = Join-Path $_.FullName ".git"
         if (-not (Test-Path $gitDir)) { return }
         Scan-OneRepo -RepoPath $_.FullName -RepoName $_.Name
