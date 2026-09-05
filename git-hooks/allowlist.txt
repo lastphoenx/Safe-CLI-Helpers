@@ -44,3 +44,4 @@ dev@example-university.edu
 sk-dein-key
 Bearer sk-dein
 LOCAL_LLM_
+SESSION_SECRET={
