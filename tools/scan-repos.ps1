@@ -64,13 +64,10 @@ $skipDir = '(\\\.git\\|\\node_modules\\|\\\.venv\\|\\dist\\|\\build\\)'
 $totalHits = 0
 $reposScanned = 0
 
-Get-ChildItem -Path $Root -Directory | ForEach-Object {
-    $gitDir = Join-Path $_.FullName ".git"
-    if (-not (Test-Path $gitDir)) { return }
-    $reposScanned++
-    $repoName = $_.Name
-    $repoPath = $_.FullName
-    Push-Location $repoPath
+function Scan-OneRepo {
+    param([string]$RepoPath, [string]$RepoName)
+    $script:reposScanned++
+    Push-Location $RepoPath
     try {
         if ($Staged) {
             $files = git diff --cached --name-only --diff-filter=ACM 2>$null
@@ -82,7 +79,7 @@ Get-ChildItem -Path $Root -Directory | ForEach-Object {
         foreach ($rel in $files) {
             if ($rel -match $skipDir) { continue }
             if ($rel -match '(^|/)git-hooks/denylist') { continue }
-            $full = Join-Path $repoPath $rel
+            $full = Join-Path $RepoPath $rel
             if (-not (Test-Path $full -PathType Leaf)) { continue }
             try {
                 $bytes = [System.IO.File]::ReadAllBytes($full)
@@ -94,14 +91,24 @@ Get-ChildItem -Path $Root -Directory | ForEach-Object {
                 $n++
                 $hit = Test-LineDenied $line
                 if ($hit) {
-                    Write-Host "${repoName}:${rel}:${n}: «${hit}»" -ForegroundColor Red
+                    Write-Host "${RepoName}:${rel}:${n}: «${hit}»" -ForegroundColor Red
                     if ($Verbose) { Write-Host "  $line" }
-                    $totalHits++
+                    $script:totalHits++
                 }
             }
         }
     } finally {
         Pop-Location
+    }
+}
+
+if (Test-Path (Join-Path $Root ".git")) {
+    Scan-OneRepo -RepoPath $Root -RepoName (Split-Path $Root -Leaf)
+} else {
+    Get-ChildItem -Path $Root -Directory | ForEach-Object {
+        $gitDir = Join-Path $_.FullName ".git"
+        if (-not (Test-Path $gitDir)) { return }
+        Scan-OneRepo -RepoPath $_.FullName -RepoName $_.Name
     }
 }
 
