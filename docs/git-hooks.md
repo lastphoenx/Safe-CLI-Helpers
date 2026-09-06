@@ -50,12 +50,19 @@ Wird ein Muster in derselben Datei entfernt und nicht neu eingeführt, ist der C
 
 ## Repos prüfen (Audit)
 
+**Pre-commit-Hook:** blockiert neue Leaks in geänderten Zeilen.
+
+**Voller Denylist-Scan** (kann viele False Positives — Provider-Beispiele, Ortsnamen in Tests):
+
 ```powershell
 cd Safe-CLI-Helpers
 .\tools\scan-repos.ps1
 .\tools\scan-repos.ps1 -Diff          # nur unstaged Änderungen
 .\tools\scan-repos.ps1 -Staged        # nur Index
 ```
+
+**Critical-Audit vor Push** (persönliche Muster, Gate): nur lokal in der **privaten Homelab-Doku** —
+`doku/ops/privacy-audit.ps1` und Ablauf in `doku/ops/privacy-cleanup-playbook.md` (nicht ins öffentliche Repo kopieren).
 
 ## Gitleaks (empfohlen)
 
