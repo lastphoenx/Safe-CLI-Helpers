@@ -3,6 +3,15 @@
 # shellcheck source=cache-lib.sh
 . "${HOOK_DIR}/cache-lib.sh"
 
+# Privates Homelab-Doku-Repo: PII-Denylist aus, Secrets/Keys bleiben aktiv.
+# Nur wenn Git-Root die Marker-Datei .private-homelab-doku-repo enthält —
+# nicht bei Ordnern «doku/»/«Doku/» in anderen Repos (deren Git-Root hat keinen Marker).
+_is_private_doku_repo() {
+  local root=""
+  root="$(git rev-parse --show-toplevel 2>/dev/null)" || return 1
+  [ -f "${root}/.private-homelab-doku-repo" ]
+}
+
 load_scan_patterns() {
   local line
   _sync_list_cache
@@ -74,6 +83,9 @@ _check_added_line() {
     echo -e "${RED}BLOCKIERT${NC} ${file} — Private Key im Inhalt" >&2
     return 1
   fi
+
+  # Homelab-PII (Namen, E-Mails, interne Hosts) ist im privaten doku-Repo erlaubt.
+  _is_private_doku_repo && return 0
 
   for pattern in "${DENY_PATTERNS[@]}"; do
     if [[ "$line" == *"$pattern"* ]]; then

@@ -33,6 +33,18 @@ Im Repo liegt nur `denylist.example.txt` (Platzhalter-Format, ohne echte Namen).
 Nur **generische** Platzhalter in `allowlist.txt`, z. B. `example.com`, `PersonA`, `Max Muster`.
 Persönliches nie whitelisten — im Quelltext ersetzen.
 
+## Ausnahme: privates `doku`-Repo
+
+Nur wenn im **Git-Root** die Datei **`.private-homelab-doku-repo`** existiert (privates Homelab-Doku-Repo
+unter `github_code/doku/`): **Denylist-PII wird nicht geprüft** (Namen, E-Mails, interne Host-Strings).
+
+**Nicht** betroffen: Unterordner `doku/` oder `Doku/` in anderen Repos — deren Git-Root hat keinen Marker.
+
+**Secrets, Private Keys und riskante Dateinamen** (.env, Keys) bleiben aktiv — auch im Homelab-`doku`-Repo.
+
+Persönliche Denylist/Allowlist-Muster und Homelab-PII-Referenzen: nur im privaten `doku`-Repo
+(siehe `doku/ops/safe-cli-homelab-hooks.md`), **nicht** in Safe-CLI-Helpers (öffentlich).
+
 ## Was blockiert wird
 
 | Kategorie | Beispiele |
@@ -51,6 +63,16 @@ Wird ein Muster in derselben Datei entfernt und nicht neu eingeführt, ist der C
 ## Repos prüfen (Audit)
 
 **Pre-commit-Hook:** blockiert neue Leaks in geänderten Zeilen.
+
+**AGENTS.md in öffentlichen Repos** (IPs, CT-Nummern, `doku/pve2`):
+
+```powershell
+cd Safe-CLI-Helpers
+.\tools\scan-agents-public.ps1 -Repo paperless-ngx-classifier
+.\tools\scan-agents-public.ps1   # alle Repos unter github_code
+```
+
+Policy: privates `doku/ops/AGENTS-public-repos-policy.md`
 
 **Voller Denylist-Scan** (kann viele False Positives — Provider-Beispiele, Ortsnamen in Tests):
 
