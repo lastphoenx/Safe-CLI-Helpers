@@ -45,3 +45,24 @@ sk-dein-key
 Bearer sk-dein
 LOCAL_LLM_
 SESSION_SECRET={
+
+# Generische Freemail-/Mail-Provider-Domains (Code-Listen: Scam, Tranco, Shared Infrastructure)
+# Erlaubt in öffentlichen Repos — nicht persönliche Postfächer whitelisten.
+gmail.com
+googlemail.com
+outlook.com
+live.com
+hotmail.com
+hotmail.ch
+yahoo.com
+icloud.com
+web.de
+bluewin.ch
+gmx.ch
+gmx.net
+gmx.de
+t-online.de
+proton.me
+protonmail.com
+mail.com
+aol.com

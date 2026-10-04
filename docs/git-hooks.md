@@ -31,6 +31,8 @@ Im Repo liegt nur `denylist.example.txt` (Platzhalter-Format, ohne echte Namen).
 ## Allowlist (öffentlich)
 
 Nur **generische** Platzhalter in `allowlist.txt`, z. B. `example.com`, `PersonA`, `Max Muster`.
+Zusätzlich: **öffentliche Freemail-/Provider-Domains** (`gmx.net`, `gmail.com`, …) für Code-Listen
+(Scam-Erkennung, Tranco Shared Infrastructure) — keine persönlichen Adressen whitelisten.
 Persönliches nie whitelisten — im Quelltext ersetzen.
 
 ## Ausnahme: privates `doku`-Repo
