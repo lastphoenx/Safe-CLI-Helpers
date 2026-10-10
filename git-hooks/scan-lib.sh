@@ -61,7 +61,8 @@ _check_added_line() {
 
   _line_allowed "$line" && return 0
 
-  if [[ "$line" =~ ([Pp][Aa][Ss][Ss]([Ww][Oo][Rr][Tt])?|[Ss][Ee][Cc][Rr][Ee][Tt]|[Aa][Pp][Ii][_-]?[Kk][Ee][Yy]|[Cc][Ll][Ii][Ee][Nn][Tt][_-]?[Ss][Ee][Cc][Rr][Ee][Tt]|[Aa][Uu][Tt][Hh][_-]?[Tt][Oo][Kk][Ee][Nn]|[Aa][Cc][Cc][Ee][Ss][Ss][_-]?[Tt][Oo][Kk][Ee][Nn]|[Pp][Rr][Ii][Vv][Aa][Tt][Ee][_-]?[Kk][Ee][Yy])[[:space:]]*[:=][[:space:]]*[^[:space:]#]+ ]]; then
+  # Nur Passwort/Passwort-Keys — nicht «2-Pass:», «Pass 1:», «Base-Pass:» (ohne «wort»)
+  if [[ "$line" =~ ([Pp][Aa][Ss][Ss]([Ww][Oo][Rr][Tt])|[Pp][Aa][Ss][Ss][Ww][Oo][Rr][Dd]|[Ss][Ee][Cc][Rr][Ee][Tt]|[Aa][Pp][Ii][_-]?[Kk][Ee][Yy]|[Cc][Ll][Ii][Ee][Nn][Tt][_-]?[Ss][Ee][Cc][Rr][Ee][Tt]|[Aa][Uu][Tt][Hh][_-]?[Tt][Oo][Kk][Ee][Nn]|[Aa][Cc][Cc][Ee][Ss][Ss][_-]?[Tt][Oo][Kk][Ee][Nn]|[Pp][Rr][Ii][Vv][Aa][Tt][Ee][_-]?[Kk][Ee][Yy])[[:space:]]*[:=][[:space:]]*[^[:space:]#]+ ]]; then
     val="${BASH_REMATCH[0]}"
     val="${val#*=}"
     val="${val#"${val%%[![:space:]]*}"}"
@@ -89,6 +90,10 @@ _check_added_line() {
 
   for pattern in "${DENY_PATTERNS[@]}"; do
     if [[ "$line" == *"$pattern"* ]]; then
+      # Denylist «Basel» vs. baseline / align-baseline (kein Ortsname)
+      if [[ "${pattern,,}" == "basel" && ( "$line" == *"baseline"* || "$line" == *"align-baseline"* ) ]]; then
+        continue
+      fi
       if _removed_lines_contain_pattern "$removed" "$pattern"; then
         continue
       fi
@@ -105,9 +110,8 @@ _check_line() {
   _check_added_line "$1" "$2" ""
 }
 
-# Scannt nur hinzugefügte Zeilen; gesammelte Entfernungen pro Datei werden berücksichtigt.
-scan_unified_diff() {
-  local diff="$1"
+# Scannt hinzugefügte Zeilen aus Unified-Diff (stdin oder $1). Kein Voll-Diff in RAM.
+_scan_unified_diff_loop() {
   local current="" line content blocked=0
   local removed_buf=""
 
@@ -130,8 +134,32 @@ scan_unified_diff() {
         _check_added_line "$current" "$content" "$removed_buf" || blocked=1
         ;;
     esac
-  done <<< "$diff"
+  done
 
+  return "$blocked"
+}
+
+scan_unified_diff() {
+  local diff="${1-}"
+  if [ -n "$diff" ]; then
+    _scan_unified_diff_loop <<< "$diff"
+  else
+    _scan_unified_diff_loop
+  fi
+}
+
+# Alle Dateien eines Commits (Initial-Push / einzelner SHA) — ohne 5MB-$()-Blob.
+scan_commit_tree() {
+  local sha="$1"
+  local blocked=0
+  local f content
+  while IFS= read -r f || [ -n "$f" ]; do
+    [ -z "$f" ] && continue
+    case "$f" in git-hooks/*) continue ;; esac
+    while IFS= read -r content || [ -n "$content" ]; do
+      _check_added_line "$f" "$content" "" || blocked=1
+    done < <(git show "$sha:$f" 2>/dev/null || true)
+  done < <(git diff-tree --no-commit-id --name-only -r "$sha" 2>/dev/null || true)
   return "$blocked"
 }
 

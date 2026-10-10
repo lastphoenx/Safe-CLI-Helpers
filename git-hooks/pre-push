@@ -24,15 +24,20 @@ while read -r local_ref local_sha remote_ref remote_sha; do
   [ "$local_sha" != "0000000000000000000000000000000000000000" ] || continue
 
   if [ "$remote_sha" = "0000000000000000000000000000000000000000" ]; then
-    diff="$(git show "$local_sha" -U0 --no-color --no-ext-diff 2>/dev/null || true)"
     names="$(git diff-tree --no-commit-id --name-only -r "$local_sha" 2>/dev/null || true)"
-  else
-    diff="$(git diff "$remote_sha" "$local_sha" -U0 --no-color --no-ext-diff 2>/dev/null || true)"
-    names="$(git diff --name-only "$remote_sha" "$local_sha" 2>/dev/null || true)"
+    echo -e "${YEL}pre-push:${NC} scanne Initial-Push (neuer Remote-Ref)…" >&2
+    _check_risky_filenames "$names" || exit 1
+    if ! scan_commit_tree "$local_sha"; then
+      echo "" >&2
+      echo -e "${YEL}Push abgebrochen.${NC} Private Daten in ausgehenden Commits gefunden." >&2
+      exit 1
+    fi
+    continue
   fi
 
+  names="$(git diff --name-only "$remote_sha" "$local_sha" 2>/dev/null || true)"
   _check_risky_filenames "$names" || exit 1
-  if [ -n "$diff" ] && ! scan_unified_diff "$diff"; then
+  if ! git diff "$remote_sha" "$local_sha" -U0 --no-color --no-ext-diff 2>/dev/null | scan_unified_diff; then
     echo "" >&2
     echo -e "${YEL}Push abgebrochen.${NC} Private Daten in ausgehenden Commits gefunden." >&2
     exit 1

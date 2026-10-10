@@ -1,13 +1,13 @@
-# Shell scripts must always use LF (Unix line endings)
+# LF in the repo — avoids CRLF ghost diffs on pi-nas (see learnai/.gitattributes)
+* text=auto
+
 *.sh text eol=lf
-
-# Python files should use LF
 *.py text eol=lf
+*.md text eol=lf
+*.txt text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
 
-# Markdown and text files
-*.md text
-*.txt text
-
-# YAML files
-*.yml text
-*.yaml text
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
