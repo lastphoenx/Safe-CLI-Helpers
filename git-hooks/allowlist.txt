@@ -10,6 +10,10 @@ example.org
 YOUR_PASSWORD
 DEIN_APP_PASSWORT
 DEIN_PASSWORT
+dein_postgres_passwort
+dein_vikunja_service_secret
+dein_authentik_client_id
+dein_authentik_client_secret
 changeme
 placeholder
 <password>
@@ -45,6 +49,11 @@ sk-dein-key
 Bearer sk-dein
 LOCAL_LLM_
 SESSION_SECRET={
+
+# Docker Compose — nur Verweis auf Projekt-.env, kein Literal-Secret im YAML
+${POSTGRES_PASSWORD}
+${VIKUNJA_SERVICE_SECRET}
+${VIKUNJA_SERVICE_PUBLICURL}
 
 # Generische Freemail-/Mail-Provider-Domains (Code-Listen: Scam, Tranco, Shared Infrastructure)
 # Erlaubt in öffentlichen Repos — nicht persönliche Postfächer whitelisten.
