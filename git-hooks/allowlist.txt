@@ -52,6 +52,7 @@ SESSION_SECRET={
 
 # Docker Compose — nur Verweis auf Projekt-.env, kein Literal-Secret im YAML
 ${POSTGRES_PASSWORD}
+${DB_PASSWORD}
 ${VIKUNJA_SERVICE_SECRET}
 ${VIKUNJA_SERVICE_PUBLICURL}
 
