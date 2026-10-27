@@ -37,12 +37,15 @@ Persönliches nie whitelisten — im Quelltext ersetzen.
 
 ## Ausnahme: privates `doku`-Repo
 
-Nur wenn im **Git-Root** die Datei **`.private-homelab-doku-repo`** existiert (privates Homelab-Doku-Repo
-unter `github_code/doku/`): **Denylist-PII wird nicht geprüft** (Namen, E-Mails, interne Host-Strings).
+`install-git-hooks.ps1` **setzt keine Hooks** im Repo mit **`.private-homelab-doku-repo`** im Git-Root
+(`github_code/doku/`) — Homelab-PII darf dort committed werden, ohne Denylist-Konflikte.
 
-**Nicht** betroffen: Unterordner `doku/` oder `Doku/` in anderen Repos — deren Git-Root hat keinen Marker.
+**Alle anderen** Repos unter `github_code/` (z. B. `phototag`, `telegram-bot`) **müssen** Hooks haben.
+Nach neuem Clone: Skript erneut ausführen (nicht automatisch).
 
-**Secrets, Private Keys und riskante Dateinamen** (.env, Keys) bleiben aktiv — auch im Homelab-`doku`-Repo.
+**Nicht** betroffen: Unterordner `doku/` in anderen Repos — deren Git-Root hat keinen Marker; dort greifen Hooks normal.
+
+Zusätzlich blockiert der Hook **`categories.txt`** (nur `categories.example.txt` erlaubt) in öffentlichen App-Repos.
 
 Persönliche Denylist/Allowlist-Muster und Homelab-PII-Referenzen: nur im privaten `doku`-Repo
 (siehe `doku/ops/safe-cli-homelab-hooks.md`), **nicht** in Safe-CLI-Helpers (öffentlich).

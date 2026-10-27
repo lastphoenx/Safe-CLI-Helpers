@@ -168,9 +168,10 @@ _check_risky_filenames() {
   [ -z "$names" ] && return 0
   local risky
   risky=$(echo "$names" | grep -vE '(^|/)\.env(\.[a-zA-Z0-9_-]+)?\.(example|sample|template)$' \
-    | grep -E '\.env($|\.|/)|(^|/)state/|\.pem$|\.key$|(^|/)credentials(\.|$)|id_rsa($|\.|/)|\.p12$|\.pfx$|secrets\.json$' || true)
+    | grep -vE '(^|/)categories\.example\.txt$' \
+    | grep -E '\.env($|\.|/)|(^|/)state/|(^|/)categories\.txt$|(^|/)categories\.private\.txt$|\.pem$|\.key$|(^|/)credentials(\.|$)|id_rsa($|\.|/)|\.p12$|\.pfx$|secrets\.json$' || true)
   if [ -n "$risky" ]; then
-    echo -e "${RED}ABBRUCH: Sensible Dateien dürfen nicht committed werden (.env, Keys, state/, credentials).${NC}" >&2
+    echo -e "${RED}ABBRUCH: Sensible Dateien dürfen nicht committed werden (.env, categories.txt, Keys, state/, credentials).${NC}" >&2
     return 1
   fi
   return 0

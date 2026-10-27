@@ -27,7 +27,7 @@ if (-not (Test-Path (Join-Path $HooksDir "denylist.txt"))) {
     $example = Join-Path $HooksDir "denylist.example.txt"
     if (Test-Path $example) {
         Copy-Item $example (Join-Path $HooksDir "denylist.txt")
-        Write-Host "  -> denylist.txt aus denylist.example.txt erstellt — bitte lokal anpassen." -ForegroundColor Yellow
+        Write-Host "  -> denylist.txt aus denylist.example.txt erstellt - bitte lokal anpassen." -ForegroundColor Yellow
     }
 }
 
@@ -43,8 +43,15 @@ Get-ChildItem -Path $Root -Directory | ForEach-Object {
     if (-not (Test-Path $gitDir)) { return }
 
     $name = $_.Name
+    $marker = Join-Path $_.FullName ".private-homelab-doku-repo"
     Push-Location $_.FullName
     try {
+        if (Test-Path $marker) {
+            git config --unset core.hooksPath 2>$null | Out-Null
+            Write-Host "  --  $name (private homelab doku - no central hooks)" -ForegroundColor DarkGray
+            $skipped++
+            return
+        }
         git config core.hooksPath $HooksDirUnix
         if ($LASTEXITCODE -eq 0) {
             Write-Host "  OK  $name"
