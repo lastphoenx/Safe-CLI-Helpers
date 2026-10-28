@@ -1,7 +1,5 @@
 # Erlaubte Platzhalter / Beispielwerte (Substring, case-insensitive).
-# Wenn eine Zeile NUR wegen eines Denylist-Treffers blockiert würde,
-# aber die ganze Zeile einen Allowlist-Eintrag enthält → erlaubt.
-# Nur generische Platzhalter — persönliches nie whitelisten, sondern im Code ersetzen.
+# Nur für PII-Denylist-Falschtreffer — NICHT für password=/secret=-Zeilen (eigene Platzhalter-Logik in scan-lib.sh).
 
 dein.name@example.com
 example.com
@@ -48,13 +46,6 @@ dev@example-university.edu
 sk-dein-key
 Bearer sk-dein
 LOCAL_LLM_
-SESSION_SECRET={
-
-# Docker Compose — nur Verweis auf Projekt-.env, kein Literal-Secret im YAML
-${POSTGRES_PASSWORD}
-${DB_PASSWORD}
-${VIKUNJA_SERVICE_SECRET}
-${VIKUNJA_SERVICE_PUBLICURL}
 
 # Generische Freemail-/Mail-Provider-Domains (Code-Listen: Scam, Tranco, Shared Infrastructure)
 # Erlaubt in öffentlichen Repos — nicht persönliche Postfächer whitelisten.

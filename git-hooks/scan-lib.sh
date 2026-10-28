@@ -51,34 +51,97 @@ _removed_lines_contain_pattern() {
   return 1
 }
 
+# RHS von password=/secret=/token=: kein Klartext-Secret, sondern Code/Typ/leer.
+_secret_rhs_is_code_not_literal() {
+  local v="$1"
+  v="${v#"${v%%[![:space:]]*}"}"
+  v="${v%"${v##*[![:space:]]}"}"
+  v="${v%%#*}"
+  v="${v%"${v##*[![:space:]]}"}"
+  [ -z "$v" ] && return 0
+  case "$v" in
+    str|int|bool|float|bytes|None|Any|Path|Optional*|dict|list|tuple|Mapping|Sequence|Callable*)
+      return 0 ;;
+  esac
+  [[ "$v" =~ ^[a-zA-Z_][a-zA-Z0-9_.]*\(\) ]] && return 0
+  [[ "$v" =~ ^[a-zA-Z_][a-zA-Z0-9_.]*\(.*\) ]] && return 0
+  [[ "$v" =~ ^os\.getenv\( ]] && return 0
+  [[ "$v" =~ ^self\.[a-zA-Z_] ]] && return 0
+  [[ "$v" =~ ^cfg\.[a-zA-Z_] ]] && return 0
+  return 1
+}
+
+# Nur diese Werte rechts von secret-ähnlichen Keys — einheitliche Platzhalter (docs/git-hooks.md).
+_secret_rhs_is_placeholder() {
+  local v="$1"
+  v="${v#"${v%%[![:space:]]*}"}"
+  v="${v%"${v##*[![:space:]]}"}"
+  v="${v%%#*}"
+  v="${v%"${v##*[![:space:]]}"}"
+  v="${v#\"}"; v="${v%\"}"
+  v="${v#\'}"; v="${v%\'}"
+  [ -z "$v" ] && return 0
+  local lv="${v,,}"
+  case "$lv" in
+    changeme|placeholder|xxx|redacted|geheim|none|example) return 0 ;;
+    dein_*|your_*|sk-dein*) return 0 ;;
+    \<password\>|\<secret\>|\<token\>|\<api_key\>|\<app_password\>) return 0 ;;
+    …|...|…) return 0 ;;
+  esac
+  [[ "$lv" =~ @example\.(com|org)$ ]] && return 0
+  [[ "$lv" =~ ^[a-z0-9._-]+@example\.(com|org)$ ]] && return 0
+  return 1
+}
+
+# Docker Compose / YAML: Wert ist ${ENV_NAME}, kein Klartext.
+_secret_rhs_is_env_var_reference() {
+  local v="$1"
+  v="${v#"${v%%[![:space:]]*}"}"
+  v="${v%"${v##*[![:space:]]}"}"
+  [[ "$v" =~ ^\$\{[A-Za-z_][A-Za-z0-9_]*\}$ ]] && return 0
+  return 1
+}
+
+_secret_assignment_rhs() {
+  local keyval="$1"
+  local val=""
+  if [[ "$keyval" == *"="* ]]; then
+    val="${keyval#*=}"
+  else
+    val="${keyval#*:}"
+  fi
+  val="${val#"${val%%[![:space:]]*}"}"
+  val="${val%"${val##*[![:space:]]}"}"
+  val="${val#`}"; val="${val%`}"
+  echo "$val"
+}
+
 # Prüft eine hinzugefügte Zeile. Entfernte Zeilen derselben Datei im Diff
 # dürfen dieselben Muster enthalten (Cleanup-Commit) — blockiert nur NEUE Einführung.
 _check_added_line() {
   local file="$1"
   local line="$2"
   local removed="$3"
-  local pattern val lval
+  local pattern keyval val lval
 
-  _line_allowed "$line" && return 0
-
-  # Nur Passwort/Passwort-Keys — nicht «2-Pass:», «Pass 1:», «Base-Pass:» (ohne «wort»)
+  # Secret-Zeilen: nie über Allowlist-Substring umgehen (PII-Allowlist gilt nur unten).
+  # Markdown-Doku: keine Secret-Regex (Beispiele in Backticks); Keys in Code/.env bleiben geschützt.
+  case "$file" in
+    *.md|*.mdc) ;;
+    *)
   if [[ "$line" =~ ([Pp][Aa][Ss][Ss]([Ww][Oo][Rr][Tt])|[Pp][Aa][Ss][Ss][Ww][Oo][Rr][Dd]|[Ss][Ee][Cc][Rr][Ee][Tt]|[Aa][Pp][Ii][_-]?[Kk][Ee][Yy]|[Cc][Ll][Ii][Ee][Nn][Tt][_-]?[Ss][Ee][Cc][Rr][Ee][Tt]|[Aa][Uu][Tt][Hh][_-]?[Tt][Oo][Kk][Ee][Nn]|[Aa][Cc][Cc][Ee][Ss][Ss][_-]?[Tt][Oo][Kk][Ee][Nn]|[Pp][Rr][Ii][Vv][Aa][Tt][Ee][_-]?[Kk][Ee][Yy])[[:space:]]*[:=][[:space:]]*[^[:space:]#]+ ]]; then
-    val="${BASH_REMATCH[0]}"
-    val="${val#*=}"
-    val="${val#"${val%%[![:space:]]*}"}"
-    val="${val%%#*}"
-    val="${val%"${val##*[![:space:]]}"}"
-    val="${val#\"}"; val="${val%\"}"
-    val="${val#\'}"; val="${val%\'}"
+    keyval="${BASH_REMATCH[0]}"
+    val="$(_secret_assignment_rhs "$keyval")"
     lval="${val,,}"
-    case "$lval" in
-      none|dein_*|your_*|changeme|placeholder|example|xxx|redacted|geheim|""|*example.com*|*example.org*|sk-dein*|*dein-key*)
-        return 0 ;;
-    esac
-    echo -e "${RED}BLOCKIERT${NC} ${file} — mögliches Passwort/Secret in Zuweisung" >&2
+    _secret_rhs_is_code_not_literal "$lval" && return 0
+    _secret_rhs_is_placeholder "$val" && return 0
+    _secret_rhs_is_env_var_reference "$val" && return 0
+    echo -e "${RED}BLOCKIERT${NC} ${file} — Secret-Zuweisung ohne erlaubten Platzhalter (DEIN_*, YOUR_*, leer, changeme, …)" >&2
     echo "  → ${line}" >&2
     return 1
   fi
+  ;;
+  esac
 
   if [[ "$line" == *"BEGIN PRIVATE KEY"* || "$line" == *"BEGIN RSA PRIVATE KEY"* || "$line" == *"BEGIN OPENSSH PRIVATE KEY"* ]]; then
     echo -e "${RED}BLOCKIERT${NC} ${file} — Private Key im Inhalt" >&2
@@ -90,6 +153,7 @@ _check_added_line() {
 
   for pattern in "${DENY_PATTERNS[@]}"; do
     if [[ "$line" == *"$pattern"* ]]; then
+      _line_allowed "$line" && continue
       # Denylist «Basel» vs. baseline / align-baseline (kein Ortsname)
       if [[ "${pattern,,}" == "basel" && ( "$line" == *"baseline"* || "$line" == *"align-baseline"* ) ]]; then
         continue
