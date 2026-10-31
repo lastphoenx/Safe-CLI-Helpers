@@ -113,7 +113,7 @@ _secret_assignment_rhs() {
   fi
   val="${val#"${val%%[![:space:]]*}"}"
   val="${val%"${val##*[![:space:]]}"}"
-  val="${val#`}"; val="${val%`}"
+  val="${val#\`}"; val="${val%\`}"
   echo "$val"
 }
 
