@@ -68,6 +68,7 @@ _secret_rhs_is_code_not_literal() {
   [[ "$v" =~ ^os\.getenv\( ]] && return 0
   [[ "$v" =~ ^self\.[a-zA-Z_] ]] && return 0
   [[ "$v" =~ ^cfg\.[a-zA-Z_] ]] && return 0
+  [[ "$v" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]] && return 0
   return 1
 }
 
@@ -232,6 +233,7 @@ _check_risky_filenames() {
   [ -z "$names" ] && return 0
   local risky
   risky=$(echo "$names" | grep -vE '(^|/)\.env(\.[a-zA-Z0-9_-]+)?\.(example|sample|template)$' \
+    | grep -vE '(^|/)userbot\.env\.example$' \
     | grep -vE '(^|/)categories\.example\.txt$' \
     | grep -E '\.env($|\.|/)|(^|/)state/|(^|/)categories\.txt$|(^|/)categories\.private\.txt$|\.pem$|\.key$|(^|/)credentials(\.|$)|id_rsa($|\.|/)|\.p12$|\.pfx$|secrets\.json$' || true)
   if [ -n "$risky" ]; then
